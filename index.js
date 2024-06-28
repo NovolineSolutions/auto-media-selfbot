@@ -23,7 +23,13 @@ const youtubeUrls = [
   "https://youtu.be/eaSXSUxLoTk",
   "https://youtu.be/i4f4FdrdKsM",
   "https://youtu.be/jxkR_pIYSb0",
+  "https://youtu.be/s9VKUjQI5E0",
+  "https://youtu.be/Z0dAsPrmpyA",
+  "https://youtu.be/22lqkXcjsbU",
+  "https://youtu.be/8aGHw3JYRGc"
 ];
+
+const sentUrls = new Set();
 
 async function isValidYouTubeUrl(url) {
   const videoId = url.split("be/")[1];
@@ -31,7 +37,7 @@ async function isValidYouTubeUrl(url) {
 
   try {
     const response = await axios.get(
-      `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${youtubeApiKey}&part=status`,
+      `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${youtubeApiKey}&part=status`
     );
     return response.data.items.length > 0;
   } catch (error) {
@@ -40,36 +46,41 @@ async function isValidYouTubeUrl(url) {
   }
 }
 
-async function sendToChannels() {
-  const validUrls = [];
+function getRandomItem(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
 
-  for (const url of youtubeUrls) {
+async function sendToChannels() {
+  const validUrls = youtubeUrls.filter(url => !sentUrls.has(url));
+
+  for (const url of validUrls) {
     const isValid = await isValidYouTubeUrl(url);
-    if (isValid) {
-      validUrls.push(url);
+    if (!isValid) {
+      sentUrls.add(url); // Mark invalid URLs to avoid re-checking them
     }
   }
 
-  if (validUrls.length === 0) {
+  const remainingUrls = validUrls.filter(url => !sentUrls.has(url));
+
+  if (remainingUrls.length === 0) {
     console.log("No valid YouTube URLs to send.");
     return;
   }
 
-  for (let i = 0; i < channelsAndServers.length && i < validUrls.length; i++) {
-    const { channelId, serverId } = channelsAndServers[i];
-    const urlToSend = validUrls[i];
+  const urlToSend = getRandomItem(remainingUrls);
+  const { channelId, serverId } = getRandomItem(channelsAndServers);
 
-    try {
-      const channel = await client.channels.fetch(channelId);
-      if (channel && channel.guild.id === serverId) {
-        await channel.send(urlToSend);
-        console.log(`Sent URL to ${channelId} in ${serverId}`);
-      } else {
-        console.log(`Channel ${channelId} in ${serverId} not found or not accessible.`);
-      }
-    } catch (error) {
-      console.error(`Error sending to channel ${channelId} in server ${serverId}:`, error);
+  try {
+    const channel = await client.channels.fetch(channelId);
+    if (channel && channel.guild.id === serverId) {
+      await channel.send(urlToSend);
+      console.log(`Sent URL to ${channelId} in ${serverId}`);
+      sentUrls.add(urlToSend); // Mark this URL as sent
+    } else {
+      console.log(`Channel ${channelId} in ${serverId} not found or not accessible.`);
     }
+  } catch (error) {
+    console.error(`Error sending to channel ${channelId} in server ${serverId}:`, error);
   }
 }
 
