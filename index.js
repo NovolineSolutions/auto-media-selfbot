@@ -1,5 +1,6 @@
 const { Client } = require("discord.js-selfbot-v13");
 const axios = require("axios");
+const express = require("express");
 
 const client = new Client();
 const token = "MTAxMjQwNjE5NzA3MDA3Mzg2Nw.Goaoxe.xQ_Te03mSvSWTsig81He8-IRK_LGUqIDKbWFck";
@@ -13,7 +14,6 @@ const channelsAndServers = [
   { channelId: "968575044097818674", serverId: "968569296412356629" },
   { channelId: "1207861415285628968", serverId: "1207828421363769364" },
   { channelId: "1253607923796676648", serverId: "1147987879465861130" },
-  
 ];
 
 const youtubeUrls = [
@@ -75,14 +75,30 @@ async function sendToChannels() {
 
 client.on("ready", () => {
   console.log(`Logged in as ${client.user.tag}`);
-  sendToChannels();
-});
-
-client.on("message", async (message) => {
-  if (message.content.toLowerCase() === "send ohio gyatt rizzler") {
-    await sendToChannels();
-    console.log("Send to all servers");
-  }
 });
 
 client.login(token);
+
+const app = express();
+const port = 3000;
+
+app.get("/", (req, res) => {
+  res.send(`
+    <html>
+      <body>
+        <button onclick="fetch('/send').then(response => response.text()).then(data => alert(data))">
+          Send YouTube Links
+        </button>
+      </body>
+    </html>
+  `);
+});
+
+app.get("/send", async (req, res) => {
+  await sendToChannels();
+  res.send("YouTube links sent!");
+});
+
+app.listen(port, () => {
+  console.log(`Web server running at http://localhost:${port}`);
+});
